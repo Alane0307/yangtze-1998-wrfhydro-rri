@@ -20,6 +20,8 @@ ci/ – automation / tests
 This repo is **code-only**.  
 Large/restricted datasets are excluded.  
 See `docs/DATA_SOURCES.md` for acquisition instructions.
+For detailed run design see [`docs/RUN_PLAN_1998.md`](docs/RUN_PLAN_1998.md)  
+and data acquisition details in [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md).
 
 ## License
 MIT © 2025 Chang Liu / Wei Wei

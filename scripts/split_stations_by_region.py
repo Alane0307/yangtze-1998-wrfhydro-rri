@@ -22,7 +22,7 @@ from typing import Dict, Tuple, Iterable, List
 # =========================
 # ======= CONFIGURE =======
 # =========================
-BASE_DIR   = os.path.expanduser('~/data/ghcnd')
+BASE_DIR   = os.path.expanduser('~/yangtze-1998-wrfhydro-rri/data/ghcnd')
 META_FILE  = os.path.join(BASE_DIR, 'metadata', 'ghcnd-stations.txt')
 RAW_DIR    = os.path.join(BASE_DIR, 'raw')            # where <ID>.csv live
 OUT_DIR    = os.path.join(BASE_DIR, 'splits')         # output root

@@ -205,3 +205,51 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Hydro / Geo data
+data/
+*.nc
+*.grb
+*.grib
+*.tif
+*.tiff
+*.hdf
+*.h5
+*.nc4
+*.bin
+*.dat
+*.geojson
+*.shp
+*.shx
+*.dbf
+
+# Model outputs & logs
+outputs/
+logs/
+
+# Local configs / credentials
+*.local.yaml
+*.secret.yaml
+*.env
+
+# ==== Big raw payloads (GHCN-Daily etc.) ====
+# tar archives
+*.tar
+*.tar.gz
+*.tgz
+
+# Any CSVs under data/ or raw/ (keep small samples via exceptions below)
+data/**/*.csv
+raw/**/*.csv
+splits/stations_yangtze_plus_buffer/**/*.csv
+splits/stations_big_window/**/*.csv
+
+# The giant daily summaries bundle(s)
+daily-summaries-latest.tar.gz
+by_year/*.tar.gz
+
+# Keep tiny, curated samples and id lists for reproducibility
+!data/samples/**
+!data/samples/*.csv
+!splits/reports/*.csv
+

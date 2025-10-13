@@ -253,3 +253,12 @@ by_year/*.tar.gz
 !data/samples/*.csv
 !splits/reports/*.csv
 
+data/gsod/raw/
+data/gsod/extracted/
+data/gsod/reports/*.txt
+
+# ISD bulk data
+data/isd/raw/
+data/isd/reports/*.log
+data/isd/extracted/
+

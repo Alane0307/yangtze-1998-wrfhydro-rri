@@ -31,11 +31,11 @@ OUT_DIR    = os.path.join(BASE_DIR, 'splits')         # output root
 BUFFER_DEG = 1.5
 
 # Rough envelope of the Yangtze basin (lon_min, lon_max, lat_min, lat_max)
-YANGTZE_BBOX = (90.0, 123.0, 24.0, 34.5)
+YANGTZE_BBOX = (89.5, 123.0, 24.0, 36.5)
 
 # Enlarged big region bbox (as discussed)
 # (lon_min, lon_max, lat_min, lat_max)
-BIG_REGION_BBOX = (90.0, 130.0, 18.0, 38.0)
+BIG_REGION_BBOX = (85.5, 130.0, 18.0, 40.0)
 
 # Output folders
 OUT_BASIN   = os.path.join(OUT_DIR, 'stations_yangtze_plus_buffer')

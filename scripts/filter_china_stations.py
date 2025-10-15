@@ -1,58 +1,40 @@
+#!/usr/bin/env python3
 import os
-import pandas as pd
-
-# === Step 1: set paths ===
-BASE_DIR = os.path.expanduser('~/data/ghcnd')
-META_PATH = os.path.join(BASE_DIR, 'metadata', 'ghcnd-stations.txt')
-RAW_DIR = os.path.join(BASE_DIR, 'raw')
-CHINA_DIR = os.path.join(BASE_DIR, 'china_allstations')
-
-os.makedirs(CHINA_DIR, exist_ok=True)
-
-# === Step 2: read station metadata ===
-# ghcnd-stations.txt is fixed-width, columns: ID, LAT, LON, ELEV, STATE, NAME...
-cols = [(0, 11), (12, 20), (21, 30), (31, 37), (38, 40), (41, 71)]
-names = ['ID', 'LAT', 'LON', 'ELEV', 'STATE', 'NAME']
-
-df = pd.read_fwf(META_PATH, colspecs=cols, names=names, dtype=str)
-
-# Clean and numeric conversions
-df['LAT'] = df['LAT'].astype(float)
-df['LON'] = df['LON'].astype(float)
-
-# === Step 3: filter stations in China region ===
-# Typical range: 18°N–54°N, 73°E–135°E
-china_df = df[(df['LON'].between(73, 135)) & (df['LAT'].between(18, 54))]
-
-# Additional filter: station ID starting with 'CH'
-china_df = china_df[china_df['ID'].str.startswith('CH')]
-
-print(f"Found {len(china_df)} stations likely in China region.")
-
-# === Step 4: copy matching station CSV files ===
 import shutil
-count_copied = 0
-for sid in china_df['ID']:
-    src = os.path.join(RAW_DIR, f"{sid}.csv")
-    dst = os.path.join(CHINA_DIR, f"{sid}.csv")
-    if os.path.exists(src):
-        shutil.copy(src, dst)
-        count_copied += 1
 
-print(f"Copied {count_copied} CSV files to {CHINA_DIR}.")
+# 根路径
+base_dir = os.path.expanduser("~/yangtze-1998-wrfhydro-rri/data/ghcnd/splits")
 
-# === Step 5: report differences ===
-expected = set(china_df['ID'])
-existing = {f[:-4] for f in os.listdir(CHINA_DIR) if f.endswith('.csv')}
-missing = expected - existing
-extra = existing - expected
+# 两个输入文件夹
+folders = {
+    "stations_big_window": "stations_big_window_china_only",
+    "stations_yangtze_plus_buffer": "stations_yangzte_plus_buffer_china_only"
+}
 
-print(f"Missing (in metadata but no file): {len(missing)}")
-print(f"Extra (copied but not listed): {len(extra)}")
+# 定义目标国家/地区代码
+china_codes = {"CH", "HK", "MC", "TW"}
 
-if missing:
-    with open(os.path.join(CHINA_DIR, 'missing_stations.txt'), 'w') as f:
-        f.write('\n'.join(sorted(missing)))
-if extra:
-    with open(os.path.join(CHINA_DIR, 'extra_stations.txt'), 'w') as f:
-        f.write('\n'.join(sorted(extra)))
+def filter_stations(src_folder, dst_folder):
+    src_path = os.path.join(base_dir, src_folder)
+    dst_path = os.path.join(base_dir, dst_folder)
+    os.makedirs(dst_path, exist_ok=True)
+
+    files = [f for f in os.listdir(src_path) if f.endswith(".csv")]
+    kept = 0
+
+    for f in files:
+        # GHCN 站点ID的前两个字母为国家/地区代码
+        country_code = f[:2]
+        if country_code in china_codes:
+            shutil.copy2(os.path.join(src_path, f), os.path.join(dst_path, f))
+            kept += 1
+
+    print(f"Folder '{src_folder}': kept {kept} Chinese/region stations")
+
+def main():
+    for src, dst in folders.items():
+        filter_stations(src, dst)
+
+if __name__ == "__main__":
+    main()
+

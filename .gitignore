@@ -262,3 +262,6 @@ data/isd/raw/
 data/isd/reports/*.log
 data/isd/extracted/
 
+# GHCNd figure
+docs/figs/big_window/
+docs/figs/big_window_china_only/

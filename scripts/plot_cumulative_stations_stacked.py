@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ========== 可配置区域 ==========
-BASE_DIR = os.path.expanduser("~/yangtze-1998-wrfhydro-rri/data/ghcnd")
+BASE_DIR = os.path.expanduser("/data/ghcnd")
 SPLITS_DIR = os.path.join(BASE_DIR, "splits")
 INVENTORY_PATH = os.path.join(BASE_DIR, "metadata", "ghcnd-inventory.txt")
 
@@ -110,6 +110,25 @@ def build_yearly_active_sets(inventory, bbox, universe_ids):
             yearly_active[y].add(sid)
 
     return station_coord, yearly_active
+
+def yearly_counts_by_region(yearly_active, station_coord, china_codes):
+    """
+    基于 yearly_active 构造两个时间序列（逐年）：
+      - cnt_china:   当年中国区域内的站点数
+      - cnt_outside: 当年窗口内但中国区域外的站点数
+    """
+    years = list(range(YEAR_MIN, YEAR_MAX + 1))
+    cnt_china, cnt_outside = [], []
+    for y in years:
+        ids = yearly_active.get(y, set())
+        cn = 0
+        for sid in ids:
+            if sid in station_coord:
+                if sid[:2] in china_codes:
+                    cn += 1
+        cnt_china.append(cn)
+        cnt_outside.append(max(0, len(ids) - cn))
+    return years, np.array(cnt_china), np.array(cnt_outside)
 
 def cumulative_counts_by_region(yearly_active, station_coord, china_codes):
     """
@@ -233,6 +252,85 @@ def plot_stacked_cumulative_highlight(years, cum_china, cum_outside, out_png, ti
     fig.savefig(out_png, bbox_inches="tight")
     plt.close(fig)
 
+def plot_stacked_yearly_highlight(years, n_china, n_outside, out_png, title):
+    """
+    画逐年堆叠柱状图（中国在上，外部在下），高亮特定年份并加箭头标注。
+    """
+    ensure_dir(os.path.dirname(out_png))
+
+    # 科研绘图风格（与累计版一致）
+    plt.rcParams.update({
+        "font.size": 10,
+        "axes.linewidth": 0.8,
+        "xtick.direction": "inout",
+        "ytick.direction": "inout",
+        "xtick.major.size": 4,
+        "ytick.major.size": 4
+    })
+
+    fig, ax = plt.subplots(figsize=(11.5, 5.6), dpi=300)
+    x = np.array(years)
+    width = 0.92
+
+    # 颜色（沿用累计版）
+    col_out_base   = "#4575b4"
+    col_china_base = "#c74b4b"
+    col_out_hi     = "#2b5a99"
+    col_china_hi   = "#a83f3f"
+
+    out_colors   = [col_out_hi if y in HILIGHT_YEARS else col_out_base for y in years]
+    china_colors = [col_china_hi if y in HILIGHT_YEARS else col_china_base for y in years]
+
+    # 先画“外部”在下，再画“中国”在上 —— 这里堆叠的是“当年数量”（非累计）
+    bars_out = ax.bar(x, n_outside, width=width, color=out_colors, edgecolor="none",
+                      label="Outside China (within window)")
+    bars_cn  = ax.bar(x, n_china,   width=width, bottom=n_outside, color=china_colors, edgecolor="none",
+                      label="China")
+
+    # 坐标轴 & 刻度
+    ax.set_xlim(years[0] - 0.5, years[-1] + 0.5)
+    ax.set_ylabel("Number of stations")      # ← 修改点
+    ax.set_xlabel("Year")
+    step = 10 if len(years) > 70 else 5
+    xticks = list(range(years[0] - (years[0] % step) + step, years[-1] + 1, step))
+    ax.set_xticks(xticks)
+    ax.tick_params(bottom=True, top=True, left=True, right=True,
+                   labelbottom=True, labelleft=True, labeltop=False, labelright=False, pad=2)
+    for spine in ["left", "bottom", "right", "top"]:
+        ax.spines[spine].set_visible(True)
+        ax.spines[spine].set_color("black")
+        ax.spines[spine].set_linewidth(0.8)
+
+    # 图例（无“cumulative”字样）
+    from matplotlib.patches import Patch
+    legend_handles = [
+        Patch(facecolor=col_out_base,   edgecolor='none', label="Outside China (within window)"),
+        Patch(facecolor=col_china_base, edgecolor='none', label="China")
+    ]
+    ax.legend(handles=legend_handles, loc="upper left", frameon=True, framealpha=0.9)
+    ax.set_title(title)
+
+    # 高亮四年份的箭头（逻辑可直接复用）
+    top_total = n_outside + n_china
+    y_max = float(top_total.max())
+    dy = max(10.0, 0.02 * y_max)
+    for y in HILIGHT_YEARS:
+        if y < years[0] or y > years[-1]:
+            continue
+        idx = y - years[0]
+        x_pos = years[idx]
+        y_pos = top_total[idx]
+        ax.annotate(f"{y}",
+                    xy=(x_pos, y_pos), xycoords="data",
+                    xytext=(x_pos, y_pos + dy), textcoords="data",
+                    ha="center", va="bottom", fontsize=10,
+                    arrowprops=dict(arrowstyle="->", lw=0.9, shrinkA=0, shrinkB=0))
+
+    ax.set_ylim(0, y_max + 3 * dy)
+    fig.tight_layout()
+    fig.savefig(out_png, bbox_inches="tight")
+    plt.close(fig)
+
 # ========== 主流程 ==========
 def main():
     parser = argparse.ArgumentParser(description="Plot cumulative stacked bars of China vs non-China (within big window) stations, 1901–2025, with highlighted years.")
@@ -259,20 +357,25 @@ def main():
     # 3) 基于 BBOX + universe 构建“每年活跃站点集合”
     station_coord, yearly_active = build_yearly_active_sets(inv, BBOX, universe_ids)
 
-    # 4) 构造累计时间序列（中国 vs 大窗口内非中国）
-    years, cum_cn, cum_out = cumulative_counts_by_region(yearly_active, station_coord, CHINA_CODES)
+    # 原来：
+    # years, cum_cn, cum_out = cumulative_counts_by_region(yearly_active, station_coord, CHINA_CODES)
+    # out_png = os.path.join(OUT_DIR, args.outname)
+    # title = "GHCNd stations cumulative counts (1901–2025)\nChina vs outside-China within outer nest"
+    # plot_stacked_cumulative_highlight(years, cum_cn, cum_out, out_png, title)
 
-    # 5) 绘图（中国在上，外部在下；高亮四年份并加箭头）
-    out_png = os.path.join(OUT_DIR, args.outname)
-    title = "GHCNd stations cumulative counts (1901–2025)\nChina vs outside-China within outer nest"
-    plot_stacked_cumulative_highlight(years, cum_cn, cum_out, out_png, title)
+    # 修改为：
+    years, n_cn, n_out = yearly_counts_by_region(yearly_active, station_coord, CHINA_CODES)
+
+    out_png = os.path.join(OUT_DIR, "yearly_stations_china_vs_outside_highlight.png")
+    title = "GHCNd stations per year (1901–2025)\nChina vs outside-China within outer nest"
+    plot_stacked_yearly_highlight(years, n_cn, n_out, out_png, title)
 
     # 6) 同时输出 CSV 便于复核
-    csv_path = os.path.join(OUT_DIR, "cumulative_stations_china_vs_outside_highlight.csv")
+    csv_path = os.path.join(OUT_DIR, "yearly_stations_china_vs_outside_highlight.csv")
     ensure_dir(OUT_DIR)
     with open(csv_path, "w", encoding="utf-8") as fw:
-        fw.write("year,cum_china,cum_outside\n")
-        for y, c1, c2 in zip(years, cum_cn, cum_out):
+        fw.write("year,china,outside\n")
+        for y, c1, c2 in zip(years, n_cn, n_out):
             fw.write(f"{y},{int(c1)},{int(c2)}\n")
 
     print(f"[done] wrote figure: {out_png}")

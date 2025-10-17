@@ -265,3 +265,9 @@ data/isd/extracted/
 # GHCNd figure
 docs/figs/big_window/
 docs/figs/big_window_china_only/
+
+# GSOD figure
+docs/figs/gsod_maps/
+
+# ISD figure
+docs/figs/isd_maps/

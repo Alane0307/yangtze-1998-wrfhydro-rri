@@ -13,7 +13,7 @@ from shapely.geometry import Point
 import matplotlib.pyplot as plt
 
 # ========== 可配置区域（与现有脚本保持一致，可按需调整） ==========
-BASE_DIR = os.path.expanduser("~/yangtze-1998-wrfhydro-rri/data/ghcnd")
+BASE_DIR = os.path.expanduser("/data/ghcnd")
 SPLITS_DIR = os.path.join(BASE_DIR, "splits")
 INVENTORY_PATH = os.path.join(BASE_DIR, "metadata", "ghcnd-inventory.txt")
 
@@ -37,23 +37,23 @@ CHINA_CODES = {"CH", "HK", "MC", "TW"}
 
 # —— 叠加用地理图层（可留空则跳过该层）——
 YANGTZE_BASIN_UNION_SHP = os.path.expanduser(
-    "~/yangtze-1998-wrfhydro-rri/data/geodata/hydrobasins/yangtze_level5_union.shp"
+    "/data/geodata/hydrobasins/yangtze_level5_union.shp"
 )
 YANGTZE_MAIN_GPKG = os.path.expanduser(
-    "~/yangtze-1998-wrfhydro-rri/data/geodata/hydrorivers/yangtze_mainstem.gpkg"
+    "/data/geodata/hydrorivers/yangtze_mainstem.gpkg"
 )
 YANGTZE_MAIN_LAYER = "yangtze_mainstem"
 YANGTZE_TRIB_GPKG = os.path.expanduser(
-    "~/yangtze-1998-wrfhydro-rri/data/geodata/hydrorivers/yangtze_major_tribs.gpkg"
+    "/data/geodata/hydrorivers/yangtze_major_tribs.gpkg"
 )
 YANGTZE_TRIB_LAYER = "yangtze_major_tribs"
 
 # —— Natural Earth 底图（Shapefile）——
 NE_LAND_SHP = os.path.expanduser(
-    "~/yangtze-1998-wrfhydro-rri/data/geodata/natural_earth/ne_50m_land/ne_50m_land.shp"
+    "/data/geodata/natural_earth/ne_50m_land/ne_50m_land.shp"
 )
 NE_COUNTRY_SHP = os.path.expanduser(
-    "~/yangtze-1998-wrfhydro-rri/data/geodata/natural_earth/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp"
+    "/data/geodata/natural_earth/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp"
 )
 
 # —— 绘图样式（与现有脚本风格一致）——
@@ -300,10 +300,15 @@ def plot_comparison_for_setup(setup_name, setup_folder, out_subdir, inventory):
         _plot_points(ax, panel_points[i])
         _setup_panel_axes(ax, BBOX, show_left, show_bottom)
 
-        # 面板标签放图内左上角（不占外部空间）
-        ax.text(0.02, 0.98, PANEL_TAGS[i],
-                transform=ax.transAxes, ha="left", va="top", fontsize=11,
-                bbox=dict(facecolor='white', edgecolor='none', alpha=0.55))
+        # 面板标签：附上当前子图站点数 N
+        n_points = len(panel_points[i])               # 这里的 panel_points[i] 是该年的 (lon, lat) 列表
+        panel_label = f"{PANEL_TAGS[i]}   N={n_points}"
+
+        ax.text(
+            0.02, 0.98, panel_label,
+            transform=ax.transAxes, ha="left", va="top", fontsize=11,
+            bbox=dict(facecolor='white', edgecolor='none', alpha=0.55)
+        )
 
     # 单一图例（右侧外部，贴近主图）
     from matplotlib.lines import Line2D
